@@ -6,11 +6,7 @@ You need two things. A Windows PC, and the key Kevin sent you.
 
 Open PowerShell. Paste the one line Kevin sent you and press Enter.
 
-If you are at Deloitte, use this line.
-
-```powershell
-$Feed='deloitte'; iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.ps1')
-```
+If you are at Deloitte, Kevin sends you a different line. It fetches everything from Deloitte.
 
 Everyone else, use this line.
 

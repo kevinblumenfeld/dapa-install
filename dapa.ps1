@@ -1,10 +1,17 @@
 # dapa - install or update, in one line.
 #
-#   iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.ps1')
+# This file holds no key and no secret. It asks for your key, then downloads the current dapa
+# installer straight from a private release and checks it before it runs. Works in Windows
+# PowerShell 5.1 and PowerShell 7.
 #
-# This file is public. It holds no key and no secret. It asks you for your key, then downloads
-# the current dapa installer straight from the private release and checks it before it runs.
-# Works in Windows PowerShell 5.1 and PowerShell 7.
+# The SAME file lives in two places, and each place has its own one line:
+#
+#   Deloitte (production) - the file sits in Deloitte's private release repo, so the line asks for
+#   the key FIRST, uses it to fetch this file, and this file reuses it. Nothing public is involved:
+#     $DapaFeed='deloitte'; $DapaKey=Read-Host 'Paste your dapa key'; iex (irm 'https://api.github.com/repos/Deloitte-US-Consulting/dapa-release/contents/dapa.ps1' -Headers @{Authorization="Bearer $DapaKey"; Accept='application/vnd.github.raw'})
+#
+#   Kevin's own feed - the file is public, so it is fetched first and asks for the key itself:
+#     iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.ps1')
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'    # a visible progress bar makes the download crawl
@@ -14,12 +21,12 @@ try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::
 # installer: GitHub has no releases-only permission, so a key for the source repo would also clone
 # dapa. These must match FEED_REPOS in the app (desktop/src/updater.ts).
 #
-# Two of them, because dapa ships from two places and Deloitte is production. Set $Feed before this
-# script runs to choose; anything not on this list is refused, so a stray value can never send a
-# customer's key somewhere we did not publish:
-#   $Feed='deloitte'; iex (irm '<this url>')
+# Two of them, because dapa ships from two places and Deloitte is production. $DapaFeed chooses;
+# anything not on this list is refused, so a stray value can never send a customer's key somewhere
+# we did not publish. The names are deliberately specific ($DapaFeed, $DapaKey, not $Feed or $k): a
+# generic variable already sitting in someone's session must never be taken for one of these.
 $repos = @{ personal = 'kevinblumenfeld/dapa-release'; deloitte = 'Deloitte-US-Consulting/dapa-release' }
-$which = if ($Feed) { "$Feed".Trim().ToLower() } else { 'personal' }
+$which = if ($DapaFeed) { "$DapaFeed".Trim().ToLower() } else { 'personal' }
 if (-not $repos.ContainsKey($which)) {
   Write-Host "`nSTOPPED: '$which' is not a dapa download. Use 'personal' or 'deloitte'." -ForegroundColor Red
   return
@@ -27,7 +34,8 @@ if (-not $repos.ContainsKey($which)) {
 $repo = $repos[$which]
 function Stop-Dapa([string]$m) { Write-Host "`n$m" -ForegroundColor Red }
 
-$key = (Read-Host 'Paste your dapa key').Trim()
+# The Deloitte line already asked for the key to fetch this file, so reuse it: one paste, not two.
+$key = if ($DapaKey) { "$DapaKey".Trim() } else { (Read-Host 'Paste your dapa key').Trim() }
 if (-not $key) { Stop-Dapa 'No key was pasted. Nothing was installed.'; return }
 
 # 1. Ask which version is current. The key is what gets you in.
