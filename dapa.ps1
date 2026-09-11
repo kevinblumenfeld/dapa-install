@@ -10,10 +10,21 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'    # a visible progress bar makes the download crawl
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch { }
 
-# The RELEASE repo, which holds installers and no source code. A key for it is worth exactly one
+# The RELEASE repos, which hold installers and no source code. A key for one is worth exactly one
 # installer: GitHub has no releases-only permission, so a key for the source repo would also clone
-# dapa. Keep this equal to FEED_REPO in the app (desktop/src/updater.ts).
-$repo = 'kevinblumenfeld/dapa-release'
+# dapa. These must match FEED_REPOS in the app (desktop/src/updater.ts).
+#
+# Two of them, because dapa ships from two places and Deloitte is production. Set $Feed before this
+# script runs to choose; anything not on this list is refused, so a stray value can never send a
+# customer's key somewhere we did not publish:
+#   $Feed='deloitte'; iex (irm '<this url>')
+$repos = @{ personal = 'kevinblumenfeld/dapa-release'; deloitte = 'Deloitte-US-Consulting/dapa-release' }
+$which = if ($Feed) { "$Feed".Trim().ToLower() } else { 'personal' }
+if (-not $repos.ContainsKey($which)) {
+  Write-Host "`nSTOPPED: '$which' is not a dapa download. Use 'personal' or 'deloitte'." -ForegroundColor Red
+  return
+}
+$repo = $repos[$which]
 function Stop-Dapa([string]$m) { Write-Host "`n$m" -ForegroundColor Red }
 
 $key = (Read-Host 'Paste your dapa key').Trim()
