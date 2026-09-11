@@ -4,11 +4,21 @@ You need two things. A Windows PC, and the key Kevin sent you.
 
 ## Install it
 
-Open PowerShell. Paste this one line and press Enter.
+Open PowerShell. Paste the one line Kevin sent you and press Enter.
+
+If you are at Deloitte, use this line.
+
+```powershell
+$Feed='deloitte'; iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.ps1')
+```
+
+Everyone else, use this line.
 
 ```powershell
 iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.ps1')
 ```
+
+Your key only works with its own line. Use the one that matches your key.
 
 It asks for your key. Paste the key and press Enter.
 
