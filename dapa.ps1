@@ -7,8 +7,11 @@
 # The SAME file lives in two places, and each place has its own one line:
 #
 #   Deloitte (production) - the file sits in Deloitte's private release repo, so the line asks for
-#   the key FIRST, uses it to fetch this file, and this file reuses it. Nothing public is involved:
-#     $DapaFeed='deloitte'; $DapaKey=Read-Host 'Paste your dapa key'; iex (irm 'https://api.github.com/repos/Deloitte-US-Consulting/dapa-release/contents/dapa.ps1' -Headers @{Authorization="Bearer $DapaKey"; Accept='application/vnd.github.raw'})
+#   the key FIRST, uses it to fetch this file, and this file reuses it. Nothing public is involved.
+#   The try/catch is there because a wrong key fails BEFORE this file exists on the machine, so this
+#   file cannot explain it; $DapaScript is cleared first so a stale copy from an earlier run is never
+#   the one that runs:
+#     $DapaScript=$null; $DapaFeed='deloitte'; $DapaKey=Read-Host 'Paste your dapa key'; try { $DapaScript = irm 'https://api.github.com/repos/Deloitte-US-Consulting/dapa-release/contents/dapa.ps1' -Headers @{Authorization="Bearer $DapaKey"; Accept='application/vnd.github.raw'} } catch { Write-Host 'That key cannot reach the dapa download. Ask Kevin for a new one.' -ForegroundColor Red }; if ($DapaScript) { iex $DapaScript }
 #
 #   Kevin's own feed - the file is public, so it is fetched first and asks for the key itself:
 #     iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.ps1')
