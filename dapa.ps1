@@ -27,7 +27,12 @@ try {
 catch {
   $code = 0
   try { $code = [int]$_.Exception.Response.StatusCode } catch { }
-  if ($code -eq 401 -or $code -eq 403 -or $code -eq 404) { Stop-Dapa 'That key did not work. It is wrong, or it has run out. Ask Kevin for a new one.' }
+  # These three mean very different things, and saying so is what stops a wasted round trip: a
+  # customer who hears "wrong key" retypes it forever when the real problem is which boxes were
+  # ticked when the key was made (MEASURED 2026-09-11 - a valid key with no repository selected
+  # answers 404 here, exactly like no key at all).
+  if ($code -eq 401) { Stop-Dapa 'That key is not valid. It was mistyped, or it has been cancelled. Ask Kevin for a new one.' }
+  elseif ($code -eq 403 -or $code -eq 404) { Stop-Dapa 'That key is valid, but it cannot reach the dapa download. Ask Kevin for a new one, and tell him it needs access to the dapa-release repository.' }
   else { Stop-Dapa "Could not reach the download. Check your internet, then run this again. ($($_.Exception.Message))" }
   return
 }
