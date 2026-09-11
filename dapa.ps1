@@ -51,7 +51,16 @@ catch {
   # ticked when the key was made (MEASURED 2026-09-11 - a valid key with no repository selected
   # answers 404 here, exactly like no key at all).
   if ($code -eq 401) { Stop-Dapa 'That key is not valid. It was mistyped, or it has been cancelled. Ask Kevin for a new one.' }
-  elseif ($code -eq 403 -or $code -eq 404) { Stop-Dapa 'That key is valid, but it cannot reach the dapa download. Ask Kevin for a new one, and tell him it needs access to the dapa-release repository.' }
+  elseif ($code -eq 403 -or $code -eq 404) {
+    # A 404 on releases/latest means EITHER "this key cannot see the repo" OR "the repo has no release
+    # yet" - GitHub answers both the same way. Ask about the repo itself to tell them apart, because
+    # the fix is completely different: a new key, or Kevin publishing a release (MEASURED 2026-09-11,
+    # a working Deloitte key read "cannot reach the download" before the first release existed).
+    $canSee = $false
+    try { $null = Invoke-WebRequest "https://api.github.com/repos/$repo" -Headers $head -UseBasicParsing; $canSee = $true } catch { }
+    if ($canSee) { Stop-Dapa 'Your key works, but there is no dapa release to download yet. Tell Kevin.' }
+    else { Stop-Dapa 'That key is valid, but it cannot reach the dapa download. Ask Kevin for a new one, and tell him it needs access to the dapa-release repository.' }
+  }
   else { Stop-Dapa "Could not reach the download. Check your internet, then run this again. ($($_.Exception.Message))" }
   return
 }
