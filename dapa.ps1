@@ -10,7 +10,10 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'    # a visible progress bar makes the download crawl
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch { }
 
-$repo = 'kevinblumenfeld/graphmarshal'
+# The RELEASE repo, which holds installers and no source code. A key for it is worth exactly one
+# installer: GitHub has no releases-only permission, so a key for the source repo would also clone
+# dapa. Keep this equal to FEED_REPO in the app (desktop/src/updater.ts).
+$repo = 'kevinblumenfeld/dapa-release'
 function Stop-Dapa([string]$m) { Write-Host "`n$m" -ForegroundColor Red }
 
 $key = (Read-Host 'Paste your dapa key').Trim()
