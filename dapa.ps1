@@ -53,7 +53,7 @@ catch {
   # customer who hears "wrong key" retypes it forever when the real problem is which boxes were
   # ticked when the key was made (MEASURED 2026-09-11 - a valid key with no repository selected
   # answers 404 here, exactly like no key at all).
-  if ($code -eq 401) { Stop-Dapa 'That key is not valid. It was mistyped, or it has been cancelled. Request a new key.' }
+  if ($code -eq 401) { Stop-Dapa 'That key is not valid. Request a new key.' }
   elseif ($code -eq 403 -or $code -eq 404) {
     # A 404 on releases/latest means EITHER "this key cannot see the repo" OR "the repo has no release
     # yet" - GitHub answers both the same way. Ask about the repo itself to tell them apart, because
@@ -62,7 +62,7 @@ catch {
     $canSee = $false
     try { $null = Invoke-WebRequest "https://api.github.com/repos/$repo" -Headers $head -UseBasicParsing; $canSee = $true } catch { }
     if ($canSee) { Stop-Dapa 'Your key works, but there is no dapa release to download yet. Report this.' }
-    else { Stop-Dapa 'That key is valid, but it cannot reach the dapa download. Request a new key with access to the dapa-release repository.' }
+    else { Stop-Dapa 'That key cannot reach the dapa download. Request a new key.' }
   }
   else { Stop-Dapa "Could not reach the download. Check your internet, then run this again. ($($_.Exception.Message))" }
   return
