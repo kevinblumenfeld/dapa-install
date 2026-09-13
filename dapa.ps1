@@ -11,7 +11,7 @@
 #   The try/catch is there because a wrong key fails BEFORE this file exists on the machine, so this
 #   file cannot explain it; $DapaScript is cleared first so a stale copy from an earlier run is never
 #   the one that runs:
-#     $DapaScript=$null; $DapaFeed='deloitte'; $DapaKey=Read-Host 'Paste your dapa key'; try { $DapaScript = irm 'https://api.github.com/repos/Deloitte-US-Consulting/dapa-release/contents/dapa.ps1' -Headers @{Authorization="Bearer $DapaKey"; Accept='application/vnd.github.raw'} } catch { Write-Host 'That key cannot reach the dapa download. Ask Kevin for a new one.' -ForegroundColor Red }; if ($DapaScript) { iex $DapaScript }
+#     $DapaScript=$null; $DapaFeed='deloitte'; $DapaKey=Read-Host 'Paste your dapa key'; try { $DapaScript = irm 'https://api.github.com/repos/Deloitte-US-Consulting/dapa-release/contents/dapa.ps1' -Headers @{Authorization="Bearer $DapaKey"; Accept='application/vnd.github.raw'} } catch { Write-Host 'That key cannot reach the dapa download. Request a new key.' -ForegroundColor Red }; if ($DapaScript) { iex $DapaScript }
 #
 #   Kevin's own feed - the file is public, so it is fetched first and asks for the key itself:
 #     iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.ps1')
@@ -53,7 +53,7 @@ catch {
   # customer who hears "wrong key" retypes it forever when the real problem is which boxes were
   # ticked when the key was made (MEASURED 2026-09-11 - a valid key with no repository selected
   # answers 404 here, exactly like no key at all).
-  if ($code -eq 401) { Stop-Dapa 'That key is not valid. It was mistyped, or it has been cancelled. Ask Kevin for a new one.' }
+  if ($code -eq 401) { Stop-Dapa 'That key is not valid. It was mistyped, or it has been cancelled. Request a new key.' }
   elseif ($code -eq 403 -or $code -eq 404) {
     # A 404 on releases/latest means EITHER "this key cannot see the repo" OR "the repo has no release
     # yet" - GitHub answers both the same way. Ask about the repo itself to tell them apart, because
@@ -61,8 +61,8 @@ catch {
     # a working Deloitte key read "cannot reach the download" before the first release existed).
     $canSee = $false
     try { $null = Invoke-WebRequest "https://api.github.com/repos/$repo" -Headers $head -UseBasicParsing; $canSee = $true } catch { }
-    if ($canSee) { Stop-Dapa 'Your key works, but there is no dapa release to download yet. Tell Kevin.' }
-    else { Stop-Dapa 'That key is valid, but it cannot reach the dapa download. Ask Kevin for a new one, and tell him it needs access to the dapa-release repository.' }
+    if ($canSee) { Stop-Dapa 'Your key works, but there is no dapa release to download yet. Report this.' }
+    else { Stop-Dapa 'That key is valid, but it cannot reach the dapa download. Request a new key with access to the dapa-release repository.' }
   }
   else { Stop-Dapa "Could not reach the download. Check your internet, then run this again. ($($_.Exception.Message))" }
   return
@@ -71,7 +71,7 @@ catch {
 $rel = $body | ConvertFrom-Json
 $file = $rel.assets | Where-Object { $_.name -match '^dapa-.*win-x64-install\.exe$' } | Select-Object -First 1
 $sum = [regex]::Match("$($file.digest)", '^sha256:([0-9a-f]{64})$', 'IgnoreCase')
-if (-not $file -or -not $sum.Success) { Stop-Dapa 'This version cannot be checked, so it will not be installed. Tell Kevin.'; return }
+if (-not $file -or -not $sum.Success) { Stop-Dapa 'This version cannot be checked, so it will not be installed. Report this.'; return }
 
 # 2. Download it. Half a file is never left looking whole.
 $exe = Join-Path $env:TEMP $file.name

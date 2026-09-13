@@ -1,12 +1,12 @@
 # Install dapa
 
-You need two things. A Windows PC, and the key Kevin sent you.
+You need two things. A Windows PC, and the key you were sent.
 
 ## Install it
 
-Open PowerShell. Paste the one line Kevin sent you and press Enter.
+Open PowerShell. Paste the one line you were sent and press Enter.
 
-If you are at Deloitte, Kevin sends you a different line. It fetches everything from Deloitte.
+If you are at Deloitte, you get a different line. It fetches everything from Deloitte.
 
 Everyone else, use this line.
 
@@ -32,7 +32,7 @@ If your key is replaced, run the same one line again with the new key.
 
 ## If it says the key did not work
 
-Keys stop working after a set time. Ask Kevin for a new one.
+Keys stop working after a set time. Request a new key.
 
 ## What this script does
 
