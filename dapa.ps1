@@ -11,7 +11,7 @@
 #   The try/catch is there because a wrong key fails BEFORE this file exists on the machine, so this
 #   file cannot explain it; $DapaScript is cleared first so a stale copy from an earlier run is never
 #   the one that runs:
-#     $DapaScript=$null; $DapaFeed='deloitte'; $DapaKey=Read-Host 'Paste your dapa key'; try { $DapaScript = irm 'https://api.github.com/repos/Deloitte-US-Consulting/dapa-release/contents/dapa.ps1' -Headers @{Authorization="Bearer $DapaKey"; Accept='application/vnd.github.raw'} } catch { Write-Host 'That key cannot reach the dapa download. Request a new key.' -ForegroundColor Red }; if ($DapaScript) { iex $DapaScript }
+#     $DapaScript=$null; $DapaFeed='deloitte'; $DapaKey=[Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host 'Paste your dapa key' -AsSecureString))); try { $DapaScript = irm 'https://api.github.com/repos/Deloitte-US-Consulting/dapa-release/contents/dapa.ps1' -Headers @{Authorization="Bearer $DapaKey"; Accept='application/vnd.github.raw'} } catch { Write-Host 'That key cannot reach the dapa download. Request a new key.' -ForegroundColor Red }; if ($DapaScript) { iex $DapaScript }
 #
 #   Kevin's own feed - the file is public, so it is fetched first and asks for the key itself:
 #     iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.ps1')
@@ -23,9 +23,11 @@ $ProgressPreference = 'SilentlyContinue'    # a visible progress bar makes the d
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch { }
 
 # The right computer, before the key is asked for. PowerShell also runs on a Mac, where it is optional,
-# and a Mac installs dapa through the Mac line in Terminal instead. $IsMacOS and $IsLinux exist only in
-# PowerShell 6 and later; Windows PowerShell 5.1 runs on Windows alone and reads both as nothing.
-if ($IsMacOS -or $IsLinux) {
+# and a Mac installs dapa through the Mac line in Terminal instead. $IsWindows exists only in
+# PowerShell 6 and later, and Windows PowerShell 5.1 runs on Windows alone, so the version is asked
+# first: -and stops there on 5.1, which matters because strict mode turns reading a variable that
+# does not exist into an error (Codex installmac-r1, finding 1).
+if ($PSVersionTable.PSVersion.Major -ge 6 -and -not $IsWindows) {
   Write-Host "`nSTOPPED: this line installs dapa on Windows. On a Mac, open Terminal and use the Mac line. Nothing was installed." -ForegroundColor Red
   return
 }
@@ -39,7 +41,11 @@ if ($IsMacOS -or $IsLinux) {
 # we did not publish. The names are deliberately specific ($DapaFeed, $DapaKey, not $Feed or $k): a
 # generic variable already sitting in someone's session must never be taken for one of these.
 $repos = @{ personal = 'kevinblumenfeld/dapa-release'; deloitte = 'Deloitte-US-Consulting/dapa-release' }
-$which = if ($DapaFeed) { "$DapaFeed".Trim().ToLower() } else { 'personal' }
+# Get-Variable, not $DapaFeed: the personal line never sets these two, and strict mode would stop the
+# script on reading a variable that does not exist.
+$feedIn = Get-Variable -Name DapaFeed -ValueOnly -ErrorAction SilentlyContinue
+$keyIn = Get-Variable -Name DapaKey -ValueOnly -ErrorAction SilentlyContinue
+$which = if ($feedIn) { "$feedIn".Trim().ToLower() } else { 'personal' }
 if (-not $repos.ContainsKey($which)) {
   Write-Host "`nSTOPPED: '$which' is not a dapa download. Use 'personal' or 'deloitte'." -ForegroundColor Red
   return
@@ -48,7 +54,14 @@ $repo = $repos[$which]
 function Stop-Dapa([string]$m) { Write-Host "`n$m" -ForegroundColor Red }
 
 # The Deloitte line already asked for the key to fetch this file, so reuse it: one paste, not two.
-$key = if ($DapaKey) { "$DapaKey".Trim() } else { (Read-Host 'Paste your dapa key').Trim() }
+# The prompt hides the key as it is pasted, as the Mac line does: a key on screen can be read over a
+# shoulder or caught by a screen share (Codex installmac-r1, finding 2). SecureStringToBSTR with
+# PtrToStringBSTR reads it back the same way in Windows PowerShell 5.1 and PowerShell 7.
+function Read-DapaKey {
+  $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host 'Paste your dapa key' -AsSecureString))
+  try { [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+}
+$key = if ($keyIn) { "$keyIn".Trim() } else { "$(Read-DapaKey)".Trim() }
 if (-not $key) { Stop-Dapa 'No key was pasted. Nothing was installed.'; return }
 
 # 1. Ask which version is current. The key is what gets you in.

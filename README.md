@@ -18,6 +18,8 @@ iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/da
 
 It asks for your key. Paste the key and press Enter.
 
+The key shows as stars while you paste. That is normal.
+
 It then downloads dapa and installs it. That takes a few minutes.
 
 You do not need admin rights. dapa installs for you only.
@@ -73,3 +75,21 @@ It checks the file against the published fingerprint before anything runs.
 If the file does not match, it is deleted and nothing is installed.
 
 This script holds no key and no password. It only asks you for yours.
+
+## DTect, only if you need it
+
+DTect is a PowerShell module. Install it only if you were told you need it.
+
+It needs its own key. Your dapa key does not open it. Request a DTect key.
+
+Open PowerShell. Paste this line and press Enter.
+
+```powershell
+iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/NoGit/main/module/NoGit/Public/Get-NoGitHubRepoTreeContents.ps1'); $o = 'kevinblumenfeld'; $base = ($env:PSModulePath -split [IO.Path]::PathSeparator | ? { $_ -and $_.StartsWith($HOME, [StringComparison]::OrdinalIgnoreCase) } | select -First 1); if (-not $base) { $base = if (($PSVersionTable.PSVersion.Major -ge 7) -and -not $IsWindows) { Join-Path $HOME '.local/share/powershell/Modules' } else { [IO.Path]::Combine([Environment]::GetFolderPath('MyDocuments'), $(if ($PSVersionTable.PSVersion.Major -ge 7) { 'PowerShell\Modules' } else { 'WindowsPowerShell\Modules' })) } }; $mods = @(@{ n = 'dTect'; r = 'GacTools'; b = 'D-TECT'; p = 'Build/DTect/' }, @{ n = 'ImportExcel'; r = 'DTECT-Resources'; b = 'main'; p = 'Resources/SupportingModules/ImportExcel' }, @{ n = 'PSParallelPipeline'; r = 'DTECT-Resources'; b = 'main'; p = 'Resources/SupportingModules/PSParallelPipeline' }); $menu = ((0..($mods.Count - 1)) | % { ("{0}) {1}" -f ($_ + 1), $mods[$_].n) }) -join "`n"; $t = Read-Host 'Paste your GitHub PAT to start'; $dl = { param($m) if ([string]::IsNullOrWhiteSpace($t)) { Write-Host 'No token set. Choose K to paste your key.' } else { Get-NoGitHubRepoTreeContents -Token $t -Owner $o -Repo $m.r -Branch $m.b -SourcePath $m.p -TargetDir ([IO.Path]::Combine($base, $m.n)) -Verbose } }; $last = $null; while ($true) { $extra = if ($last) { "`nL) Last ($last)" } else { "" }; $ans = Read-Host ("Installing into $base`nSelect module(s) to install (comma-separated for multiple):`n$menu`nA) All`nK) Paste/Change key`nQ) Quit$extra"); if (!$ans -or $ans -match '^[Qq]$') { break } elseif ($ans -match '^[Kk]$') { $new = Read-Host 'Paste your GitHub PAT (leave blank to keep current)'; if (-not [string]::IsNullOrWhiteSpace($new)) { $t = $new } } elseif ($ans -match '^[Aa]$') { $last = 'All'; $mods | % { & $dl $_ }; Write-Host 'All done.' } elseif ($ans -match '^[Ll]$' -and $last) { $names = if ($last -eq 'All') { $mods.n } else { $last -split ', ' }; $mods | ? { $names -contains $_.n } | % { & $dl $_ }; Write-Host 'Done.' } else { $nums = $ans -split ',' | % { $_.Trim() } | ? { $_ }; $valid = $true; $selected = @(); foreach ($num in $nums) { $i = 0; if ([int]::TryParse($num, [ref]$i) -and $i -ge 1 -and $i -le $mods.Count) { $selected += $mods[$i - 1] } else { $valid = $false; break } }; if ($valid -and $selected.Count -gt 0) { $last = ($selected.n) -join ', '; $selected | % { & $dl $_ }; Write-Host 'Done.' } else { Write-Host 'Invalid choice.' } } }
+```
+
+It asks for a GitHub PAT. Paste your DTect key there and press Enter.
+
+Then pick what to install. A installs all three. Type Q when you are done.
+
+On a Mac, DTect needs PowerShell installed first.
