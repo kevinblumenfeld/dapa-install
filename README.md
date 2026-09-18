@@ -1,22 +1,20 @@
 # Install dapa
 
-You need two things. A Windows PC or a Mac, and the key you were sent.
+You need two things: a Windows PC or a Mac, and the key you were sent.
 
-On a Mac, see "On a Mac" below.
+There is one line for Windows and one for a Mac. Use the one for your computer.
 
-## Install it
+The same key works on both.
 
-Open PowerShell. Paste the one line you were sent and press Enter.
+## Install it on Windows
 
-If you are at Deloitte, you get a different line. It fetches everything from Deloitte.
+Open PowerShell. To find it, press the Windows key, type PowerShell, and press Enter.
 
-Everyone else, use this line.
+Paste this line and press Enter.
 
 ```powershell
 iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.ps1')
 ```
-
-Your key only works with its own line. Use the one that matches your key.
 
 It asks for your key. Paste the key and press Enter.
 
@@ -24,21 +22,29 @@ It then downloads dapa and installs it. That takes a few minutes.
 
 You do not need admin rights. dapa installs for you only.
 
-## On a Mac
+## Install it on a Mac
 
 dapa runs on a Mac with Apple silicon, M1 or newer.
 
-Open Terminal. Paste this line and press Enter.
+Open Terminal. To find it, press Command and Space, type Terminal, and press Return.
+
+Paste this line and press Return.
 
 ```zsh
 if S="$(curl -fsSL https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.sh)"; then zsh -c "$S"; fi
 ```
 
-If you are at Deloitte, you get a different line. It fetches everything from Deloitte.
+It asks for your key. Paste the key and press Return.
 
-It asks for your key. Paste the key and press Enter.
+The key stays hidden while you paste. That is normal.
 
-dapa goes into your own Applications folder. You do not need an admin password.
+It then downloads dapa and puts it in your own Applications folder.
+
+You do not need PowerShell or an admin password.
+
+## If you are at Deloitte
+
+You get different lines, one for Windows and one for a Mac. They fetch everything from Deloitte.
 
 ## Updates
 
@@ -51,6 +57,12 @@ If your key is replaced, run the same one line again with the new key.
 ## If it says the key did not work
 
 Keys stop working after a set time. Request a new key.
+
+## If it says this is the wrong line
+
+Each line checks the computer first. On the wrong computer it stops, and nothing is installed.
+
+Use the other line.
 
 ## What this script does
 

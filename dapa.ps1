@@ -15,10 +15,20 @@
 #
 #   Kevin's own feed - the file is public, so it is fetched first and asks for the key itself:
 #     iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.ps1')
+#
+# A Mac has its own lines, in the Mac's own Terminal, with no PowerShell: see dapa.sh beside this file.
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'    # a visible progress bar makes the download crawl
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch { }
+
+# The right computer, before the key is asked for. PowerShell also runs on a Mac, where it is optional,
+# and a Mac installs dapa through the Mac line in Terminal instead. $IsMacOS and $IsLinux exist only in
+# PowerShell 6 and later; Windows PowerShell 5.1 runs on Windows alone and reads both as nothing.
+if ($IsMacOS -or $IsLinux) {
+  Write-Host "`nSTOPPED: this line installs dapa on Windows. On a Mac, open Terminal and use the Mac line. Nothing was installed." -ForegroundColor Red
+  return
+}
 
 # The RELEASE repos, which hold installers and no source code. A key for one is worth exactly one
 # installer: GitHub has no releases-only permission, so a key for the source repo would also clone

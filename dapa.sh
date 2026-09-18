@@ -8,16 +8,26 @@
 #
 #   Deloitte (production) - the file sits in Deloitte's private release repo, so the line asks for
 #   the key FIRST, uses it to fetch this file, and hands it to this file on stdin:
-#     read -rs "DAPA_KEY?Paste your dapa key: "; echo; if S="$(print -r -- "Authorization: Bearer $DAPA_KEY" | curl -fsSL -H @- -H "Accept: application/vnd.github.raw" https://api.github.com/repos/Deloitte-US-Consulting/dapa-release/contents/dapa.sh)"; then print -r -- "$DAPA_KEY" | DAPA_FEED=deloitte zsh -c "$S"; else echo "That key cannot reach the dapa download. Request a new key."; fi; unset DAPA_KEY S
+#     printf 'Paste your dapa key: '; read -rs DAPA_KEY; echo; if S="$(printf 'Authorization: Bearer %s\n' "$DAPA_KEY" | curl -fsSL -H @- -H "Accept: application/vnd.github.raw" https://api.github.com/repos/Deloitte-US-Consulting/dapa-release/contents/dapa.sh)"; then printf '%s\n' "$DAPA_KEY" | DAPA_FEED=deloitte zsh -c "$S"; else echo "That key cannot reach the dapa download. Request a new key."; fi; unset DAPA_KEY S
 #
 #   Kevin's own feed - the file is public, so it is fetched first and asks for the key itself:
 #     if S="$(curl -fsSL https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.sh)"; then zsh -c "$S"; fi
 #
+# Both lines work whether Terminal runs zsh (every new Mac account since 2019) or bash (an older
+# account carried over): they use only printf, read and curl, and run this file with zsh by name.
+# No PowerShell: on a Mac it is optional, and a customer must never have to install it for dapa.
+#
 # THE KEY NEVER SITS IN A PROGRAM'S ARGUMENTS OR ENVIRONMENT, where any program this user runs could
-# read it. It travels on stdin: from zsh's own print (a builtin, so no new program) into curl -H @-,
-# and from the Deloitte line into this file. (Codex macapp-r1, finding 3.)
+# read it. It travels on stdin: from the shell's own printf (a builtin in zsh and bash, so no new
+# program) into curl -H @-, and from the Deloitte line into this file. (Codex macapp-r1, finding 3.)
 
 stop() { print -P "\n%F{red}$1%f"; exit 1; }
+
+# The right computer, before anything else. dapa for Mac is built for Apple silicon only.
+# hw.optional.arm64 answers 1 on an M-series Mac even when Terminal runs under Rosetta, where
+# uname -m says x86_64; an Intel Mac has no such entry at all.
+[[ "$(uname -s)" == Darwin ]] || stop "STOPPED: this line installs dapa on a Mac. On Windows, use the PowerShell line. Nothing was installed."
+[[ "$(sysctl -in hw.optional.arm64 2>/dev/null)" == 1 ]] || stop "STOPPED: dapa for Mac needs a Mac with Apple silicon, M1 or newer. Nothing was installed."
 
 # The RELEASE repos, which hold installers and no source code. These must match FEED_REPOS in the app
 # (desktop/src/updater.ts). DAPA_FEED chooses; anything not on this list is refused, so a stray value
