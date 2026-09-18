@@ -1,6 +1,8 @@
 # Install dapa
 
-You need two things. A Windows PC, and the key you were sent.
+You need two things. A Windows PC or a Mac, and the key you were sent.
+
+On a Mac, see "On a Mac" below.
 
 ## Install it
 
@@ -22,6 +24,22 @@ It then downloads dapa and installs it. That takes a few minutes.
 
 You do not need admin rights. dapa installs for you only.
 
+## On a Mac
+
+dapa runs on a Mac with Apple silicon, M1 or newer.
+
+Open Terminal. Paste this line and press Enter.
+
+```zsh
+if S="$(curl -fsSL https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.sh)"; then zsh -c "$S"; fi
+```
+
+If you are at Deloitte, you get a different line. It fetches everything from Deloitte.
+
+It asks for your key. Paste the key and press Enter.
+
+dapa goes into your own Applications folder. You do not need an admin password.
+
 ## Updates
 
 There is nothing more to do. You paste your key once, here.
@@ -36,7 +54,7 @@ Keys stop working after a set time. Request a new key.
 
 ## What this script does
 
-It asks GitHub for the current dapa installer and downloads it.
+It finds the current dapa download for your computer and downloads it.
 
 It checks the file against the published fingerprint before anything runs.
 
