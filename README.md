@@ -54,6 +54,12 @@ There is nothing more to do. You paste your key once, here.
 
 dapa keeps that key and updates itself when a new version comes out.
 
+On a Mac, the first time dapa opens after an update, your Mac asks for your password.
+
+That is macOS asking whether the new dapa may use what the old one saved.
+
+Type your Mac password and click Always Allow.
+
 If your key is replaced, run the same one line again with the new key.
 
 ## If it says the key did not work
