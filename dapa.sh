@@ -49,7 +49,7 @@ esac
 branch="${DAPA_BRANCH:-main}"
 case "${branch:l}" in
   main) app="dapa"; prefix="dapa"; data_name="dapa-desktop" ;;
-  dev) app="dapa dev"; prefix="dapa-dev"; data_name="dapa-desktop-dev" ;;
+  dev) app="dapa dev"; prefix="dapa-dev"; data_name="dapa-dev" ;;
   *) stop "STOPPED: '$branch' is not a dapa build. Use 'dev', or leave it out for dapa. Nothing was installed." ;;
 esac
 
@@ -83,13 +83,16 @@ esac
 
 # Pick the Mac zip and its sha256. Every Mac reads JSON with JavaScript for Automation; no extra tools.
 # dapa dev takes the newest dev build holding its Mac zip with a checksum: a pre-release tagged
-# dev-v<version>. A build missing either is passed over, never installed.
+# dev-v<version>, whose zip is named for that SAME version (a release holding another version's zip would
+# offer one version and install another). A build missing either is passed over, never installed.
 pick="$(osascript -l JavaScript -e 'function run(argv) {
   const body = JSON.parse(argv[0]);
   const dev = argv[1] === "dapa-dev";
-  const zipFor = (rel) => (rel.assets || []).find((a) => (dev ? /^dapa-dev-.*mac-arm64\.zip$/i : /^dapa-(?!dev-).*mac-arm64\.zip$/i).test(a.name));
+  const zipFor = (rel) => (rel.assets || []).find((a) => /^dapa-(?!dev-).*mac-arm64\.zip$/i.test(a.name));
+  const devZipFor = (rel, version) => (rel.assets || []).find((a) => (a.name || "").toLowerCase() === `dapa-dev-${version}-mac-arm64.zip`);
   const sumOf = (file) => file && /^sha256:([0-9a-f]{64})$/i.exec(file.digest || "");
   let rel = body;
+  let file = null;
   // The latest release is never a dev build, a pre-release or a draft, unless something went wrong on the
   // download site. Then nothing is installed, rather than a dev build as dapa.
   if (!dev && (/^dev-/i.test(body.tag_name || "") || body.prerelease === true || body.draft === true)) return "";
@@ -97,15 +100,16 @@ pick="$(osascript -l JavaScript -e 'function run(argv) {
     rel = null;
     let best = null;
     for (const r of Array.isArray(body) ? body : []) {
-      const m = /^dev-v(\d+)\.(\d+)\.(\d+)$/.exec(r.tag_name || "");
-      if (!m || r.draft || r.prerelease !== true || !sumOf(zipFor(r))) continue;
-      const v = [Number(m[1]), Number(m[2]), Number(m[3])];
+      const m = /^dev-v((\d+)\.(\d+)\.(\d+))$/.exec(r.tag_name || "");
+      const zip = m ? devZipFor(r, m[1]) : null;
+      if (!m || r.draft || r.prerelease !== true || !sumOf(zip)) continue;
+      const v = [Number(m[2]), Number(m[3]), Number(m[4])];
       const newer = !best || v[0] > best[0] || (v[0] === best[0] && (v[1] > best[1] || (v[1] === best[1] && v[2] > best[2])));
-      if (newer) { best = v; rel = r; }
+      if (newer) { best = v; rel = r; file = zip; }
     }
     if (!rel) return "";
   }
-  const file = zipFor(rel);
+  else file = zipFor(rel);
   const sum = sumOf(file);
   return file && sum ? [rel.tag_name, file.name, file.url, file.size, sum[1].toLowerCase()].join("\t") : "";
 }' "$(cat "$tmp/latest.json")" "$prefix" 2>/dev/null)"

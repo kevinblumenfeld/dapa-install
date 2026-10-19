@@ -70,8 +70,9 @@ $repo = $repos[$which]
 # dapa dev's names: its files, its data folder, and what people see. They match the app
 # (desktop/src/build-flavor.ts and desktop/scripts/dev-builder-config.cjs in the dapa source).
 $app = if ($dev) { 'dapa dev' } else { 'dapa' }
-# dapa's own pattern refuses a dapa-dev- file outright: a dev build is never installed as dapa.
-$pattern = if ($dev) { '^dapa-dev-.*win-x64-install\.exe$' } else { '^dapa-(?!dev-).*win-x64-install\.exe$' }
+# dapa's own pattern refuses a dapa-dev- file outright: a dev build is never installed as dapa. (dapa dev
+# asks for one exact file name instead, below.)
+$pattern = '^dapa-(?!dev-).*win-x64-install\.exe$'
 function Stop-Dapa([string]$m) { Write-Host "`n$m" -ForegroundColor Red }
 
 # The Deloitte line already asked for the key to fetch this file, so reuse it: one paste, not two.
@@ -116,18 +117,21 @@ catch {
 
 if ($dev) {
   # The newest dev build holding the Windows installer with a checksum: a pre-release tagged
-  # dev-v<version>. A dev build missing its file or its checksum is passed over, never installed.
-  # The list goes into a variable before it is walked: Windows PowerShell 5.1 hands a JSON list on
-  # as ONE object, and a variable holds it as the list it is.
+  # dev-v<version>, whose file is named for that SAME version (a release holding another version's
+  # file would offer one version and install another). A dev build missing its file or its checksum is
+  # passed over, never installed. The list goes into a variable before it is walked: Windows PowerShell
+  # 5.1 hands a JSON list on as ONE object, and a variable holds it as the list it is.
   $list = $body | ConvertFrom-Json
   $rel = $null
+  $file = $null
   $newest = $null
   foreach ($r in $list) {
-    if ($r.draft -or $r.prerelease -ne $true -or "$($r.tag_name)" -notmatch '^dev-v(\d+)\.(\d+)\.(\d+)$') { continue }
-    $v = [version]::new([int]$Matches[1], [int]$Matches[2], [int]$Matches[3])
-    $f = $r.assets | Where-Object { $_.name -match $pattern } | Select-Object -First 1
+    if ($r.draft -or $r.prerelease -ne $true -or "$($r.tag_name)" -notmatch '^dev-v((\d+)\.(\d+)\.(\d+))$') { continue }
+    $v = [version]::new([int]$Matches[2], [int]$Matches[3], [int]$Matches[4])
+    $want = "dapa-dev-$($Matches[1])-win-x64-install.exe"
+    $f = $r.assets | Where-Object { $_.name -eq $want } | Select-Object -First 1
     if (-not $f -or "$($f.digest)" -notmatch '^sha256:[0-9a-f]{64}$') { continue }
-    if (-not $newest -or $v -gt $newest) { $rel = $r; $newest = $v }
+    if (-not $newest -or $v -gt $newest) { $rel = $r; $file = $f; $newest = $v }
   }
   if (-not $rel) { Stop-Dapa 'Your key works, but there is no dapa dev build to download yet. Report this.'; return }
 }
@@ -139,8 +143,8 @@ else {
     Stop-Dapa 'The current download is not a dapa release, so nothing was installed. Report this.'
     return
   }
+  $file = $rel.assets | Where-Object { $_.name -match $pattern } | Select-Object -First 1
 }
-$file = $rel.assets | Where-Object { $_.name -match $pattern } | Select-Object -First 1
 $sum = [regex]::Match("$($file.digest)", '^sha256:([0-9a-f]{64})$', 'IgnoreCase')
 if (-not $file -or -not $sum.Success) { Stop-Dapa 'This version cannot be checked, so it will not be installed. Report this.'; return }
 
@@ -164,7 +168,7 @@ Move-Item "$exe.part" $exe -Force
 # 4. Hand the key to the app, so it is never pasted a second time. The app claims this file the first
 # time it starts: it stores the key the way Windows encrypts secrets, then deletes the file. Running
 # this script again with a NEW key is also how a key is replaced. dapa dev has a data folder of its own.
-$data = Join-Path $env:APPDATA $(if ($dev) { 'dapa-desktop-dev' } else { 'dapa-desktop' })
+$data = Join-Path $env:APPDATA $(if ($dev) { 'dapa-dev' } else { 'dapa-desktop' })
 # dapa dev's FIRST install starts from a copy of dapa's data on this PC, so its connections and
 # settings are already there. Once only: an existing dapa dev folder is never touched. Windows keeps
 # the key to dapa's saved secrets per person, so the copy opens them too. Caches, logs and dapa's
