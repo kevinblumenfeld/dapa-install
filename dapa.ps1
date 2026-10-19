@@ -16,6 +16,11 @@
 #   Kevin's own feed - the file is public, so it is fetched first and asks for the key itself:
 #     iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.ps1')
 #
+# DAPA DEV (2026-10-19): the dev branch's own app, which installs BESIDE dapa with its own name, folders
+# and Start menu icon, and updates only from dev builds. Its line is either line above with
+# $DapaBranch='dev'; added first (after $DapaFeed='deloitte'; on the Deloitte line). The same key works:
+# dev builds sit in the same release repo, as pre-releases that dapa itself never offers.
+#
 # A Mac has its own lines, in the Mac's own Terminal, with no PowerShell: see dapa.sh beside this file.
 
 $ErrorActionPreference = 'Stop'
@@ -41,16 +46,31 @@ if ($PSVersionTable.PSVersion.Major -ge 6 -and -not $IsWindows) {
 # we did not publish. The names are deliberately specific ($DapaFeed, $DapaKey, not $Feed or $k): a
 # generic variable already sitting in someone's session must never be taken for one of these.
 $repos = @{ personal = 'kevinblumenfeld/dapa-release'; deloitte = 'Deloitte-US-Consulting/dapa-release' }
-# Get-Variable, not $DapaFeed: the personal line never sets these two, and strict mode would stop the
+# Get-Variable, not $DapaFeed: the personal line never sets these, and strict mode would stop the
 # script on reading a variable that does not exist.
 $feedIn = Get-Variable -Name DapaFeed -ValueOnly -ErrorAction SilentlyContinue
 $keyIn = Get-Variable -Name DapaKey -ValueOnly -ErrorAction SilentlyContinue
+# WHICH APP: dapa, or dapa dev when the line says $DapaBranch='dev'. Read once and cleared at once:
+# dapa's own lines never set it, so one left in this window by an earlier dev line would otherwise
+# install dapa dev when dapa was meant.
+$branchIn = Get-Variable -Name DapaBranch -ValueOnly -ErrorAction SilentlyContinue
+Remove-Variable -Name DapaBranch -ErrorAction SilentlyContinue
 $which = if ($feedIn) { "$feedIn".Trim().ToLower() } else { 'personal' }
 if (-not $repos.ContainsKey($which)) {
   Write-Host "`nSTOPPED: '$which' is not a dapa download. Use 'personal' or 'deloitte'." -ForegroundColor Red
   return
 }
+$branch = if ($branchIn) { "$branchIn".Trim().ToLower() } else { 'main' }
+if ($branch -ne 'main' -and $branch -ne 'dev') {
+  Write-Host "`nSTOPPED: '$branch' is not a dapa build. Use 'dev', or leave it out for dapa. Nothing was installed." -ForegroundColor Red
+  return
+}
+$dev = $branch -eq 'dev'
 $repo = $repos[$which]
+# dapa dev's names: its files, its data folder, and what people see. They match the app
+# (desktop/src/build-flavor.ts and desktop/scripts/dev-builder-config.cjs in the dapa source).
+$app = if ($dev) { 'dapa dev' } else { 'dapa' }
+$pattern = if ($dev) { '^dapa-dev-.*win-x64-install\.exe$' } else { '^dapa-.*win-x64-install\.exe$' }
 function Stop-Dapa([string]$m) { Write-Host "`n$m" -ForegroundColor Red }
 
 # The Deloitte line already asked for the key to fetch this file, so reuse it: one paste, not two.
@@ -64,10 +84,12 @@ function Read-DapaKey {
 $key = if ($keyIn) { "$keyIn".Trim() } else { "$(Read-DapaKey)".Trim() }
 if (-not $key) { Stop-Dapa 'No key was pasted. Nothing was installed.'; return }
 
-# 1. Ask which version is current. The key is what gets you in.
+# 1. Ask which version is current. The key is what gets you in. dapa asks for the latest release,
+# which is never a pre-release. dapa dev asks for the release list and takes its newest dev build.
 $head = @{ Authorization = "Bearer $key"; 'User-Agent' = 'dapa-install' }
+$ask = if ($dev) { "https://api.github.com/repos/$repo/releases?per_page=50" } else { "https://api.github.com/repos/$repo/releases/latest" }
 try {
-  $body = (Invoke-WebRequest "https://api.github.com/repos/$repo/releases/latest" -Headers $head -UseBasicParsing).Content
+  $body = (Invoke-WebRequest $ask -Headers $head -UseBasicParsing).Content
 }
 catch {
   $code = 0
@@ -91,14 +113,32 @@ catch {
   return
 }
 
-$rel = $body | ConvertFrom-Json
-$file = $rel.assets | Where-Object { $_.name -match '^dapa-.*win-x64-install\.exe$' } | Select-Object -First 1
+if ($dev) {
+  # The newest dev build holding the Windows installer with a checksum: a pre-release tagged
+  # dev-v<version>. A dev build missing its file or its checksum is passed over, never installed.
+  # The list goes into a variable before it is walked: Windows PowerShell 5.1 hands a JSON list on
+  # as ONE object, and a variable holds it as the list it is.
+  $list = $body | ConvertFrom-Json
+  $rel = $null
+  $newest = $null
+  foreach ($r in $list) {
+    if ($r.draft -or $r.prerelease -ne $true -or "$($r.tag_name)" -notmatch '^dev-v(\d+)\.(\d+)\.(\d+)$') { continue }
+    $v = [version]::new([int]$Matches[1], [int]$Matches[2], [int]$Matches[3])
+    $f = $r.assets | Where-Object { $_.name -match $pattern } | Select-Object -First 1
+    if (-not $f -or "$($f.digest)" -notmatch '^sha256:[0-9a-f]{64}$') { continue }
+    if (-not $newest -or $v -gt $newest) { $rel = $r; $newest = $v }
+  }
+  if (-not $rel) { Stop-Dapa 'Your key works, but there is no dapa dev build to download yet. Report this.'; return }
+}
+else { $rel = $body | ConvertFrom-Json }
+$file = $rel.assets | Where-Object { $_.name -match $pattern } | Select-Object -First 1
 $sum = [regex]::Match("$($file.digest)", '^sha256:([0-9a-f]{64})$', 'IgnoreCase')
 if (-not $file -or -not $sum.Success) { Stop-Dapa 'This version cannot be checked, so it will not be installed. Report this.'; return }
 
 # 2. Download it. Half a file is never left looking whole.
 $exe = Join-Path $env:TEMP $file.name
-Write-Host "`ndapa $($rel.tag_name)" -ForegroundColor Cyan
+$shown = "$($rel.tag_name)" -replace '^dev-', ''
+Write-Host "`n$app $shown" -ForegroundColor Cyan
 Write-Host "Downloading $([math]::Round($file.size / 1MB)) MB. This takes a few minutes."
 $head['Accept'] = 'application/octet-stream'
 try { Invoke-WebRequest $file.url -Headers $head -OutFile "$exe.part" -UseBasicParsing }
@@ -112,10 +152,26 @@ if ((Get-FileHash "$exe.part" -Algorithm SHA256).Hash -ne $sum.Groups[1].Value.T
 }
 Move-Item "$exe.part" $exe -Force
 
-# 4. Hand the key to dapa, so it is never pasted a second time. dapa claims this file the first time
-# it starts: it stores the key the way Windows encrypts secrets, then deletes the file. Running this
-# script again with a NEW key is also how a key is replaced.
-$data = Join-Path $env:APPDATA 'dapa-desktop'
+# 4. Hand the key to the app, so it is never pasted a second time. The app claims this file the first
+# time it starts: it stores the key the way Windows encrypts secrets, then deletes the file. Running
+# this script again with a NEW key is also how a key is replaced. dapa dev has a data folder of its own.
+$data = Join-Path $env:APPDATA $(if ($dev) { 'dapa-desktop-dev' } else { 'dapa-desktop' })
+# dapa dev's FIRST install starts from a copy of dapa's data on this PC, so its connections and
+# settings are already there. Once only: an existing dapa dev folder is never touched. Windows keeps
+# the key to dapa's saved secrets per person, so the copy opens them too. Caches, logs and dapa's
+# own update downloads stay behind. robocopy skips a file dapa holds open instead of stopping.
+$fromDapa = Join-Path $env:APPDATA 'dapa-desktop'
+if ($dev -and -not (Test-Path $data) -and (Test-Path $fromDapa)) {
+  if (Get-Process -Name dapa -ErrorAction SilentlyContinue) {
+    Write-Host 'dapa is open. Close it so its data copies cleanly, then press Enter.' -ForegroundColor Yellow
+    $null = Read-Host
+  }
+  Write-Host 'Copying your dapa connections and settings to dapa dev, once. Downloaded AI models make this slower.'
+  $skipFolders = @('Cache', 'Code Cache', 'GPUCache', 'DawnGraphiteCache', 'DawnWebGPUCache', 'Crashpad', 'updates')
+  $skipFiles = @('dapa.log', 'dapa.log.old', 'main.log', 'DevToolsActivePort', 'lockfile', 'SingletonLock', 'update-key.txt')
+  robocopy $fromDapa $data /E /R:0 /W:0 /NFL /NDL /NJH /NJS /NP /XD @skipFolders /XF @skipFiles | Out-Null
+  if ($LASTEXITCODE -ge 8) { Write-Host 'Some of it could not be copied. dapa dev starts with the rest.' -ForegroundColor Yellow }
+}
 if (-not (Test-Path $data)) { New-Item -ItemType Directory -Path $data -Force | Out-Null }
 Set-Content -Path (Join-Path $data 'update-key.txt') -Value $key -Encoding utf8 -NoNewline
 
@@ -123,5 +179,11 @@ Set-Content -Path (Join-Path $data 'update-key.txt') -Value $key -Encoding utf8 
 Write-Host 'Checked. Installing now.' -ForegroundColor Green
 Start-Process $exe -Wait
 Remove-Item $exe -Force -ErrorAction SilentlyContinue
-Write-Host "`ndapa is installed. Open it from the Start menu." -ForegroundColor Green
-Write-Host 'It will keep itself up to date. There is nothing else to paste.'
+if ($dev) {
+  Write-Host "`ndapa dev is installed beside dapa. Open it from the Start menu: dapa dev." -ForegroundColor Green
+  Write-Host 'It keeps itself up to date with dev builds. dapa stays as it is.'
+}
+else {
+  Write-Host "`ndapa is installed. Open it from the Start menu." -ForegroundColor Green
+  Write-Host 'It will keep itself up to date. There is nothing else to paste.'
+}

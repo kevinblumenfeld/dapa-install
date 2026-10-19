@@ -48,6 +48,34 @@ You do not need PowerShell or an admin password.
 
 You get different lines, one for Windows and one for a Mac. They fetch everything from Deloitte.
 
+## dapa dev, only if you were sent its line
+
+dapa dev is the next dapa, before it is released. It installs beside dapa.
+
+Both can be open at the same time. Each has its own icon: dapa and dapa dev.
+
+The same key works. dapa dev updates itself from dev builds only.
+
+On Windows, paste this line in PowerShell:
+
+```powershell
+$DapaBranch='dev'; iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.ps1')
+```
+
+The first time, it copies your dapa connections and settings into dapa dev.
+
+On a Mac, paste this line in Terminal:
+
+```zsh
+if S="$(curl -fsSL https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa.sh)"; then DAPA_BRANCH=dev zsh -c "$S"; fi
+```
+
+On a Mac, dapa dev starts with its own settings. Add your connections there once.
+
+At Deloitte, you get separate dev lines.
+
+To remove dapa dev on Windows: Settings, Apps, dapa dev, Uninstall. On a Mac: move dapa dev to the Trash.
+
 ## Updates
 
 There is nothing more to do. You paste your key once, here.
