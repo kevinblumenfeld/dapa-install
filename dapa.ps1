@@ -70,7 +70,8 @@ $repo = $repos[$which]
 # dapa dev's names: its files, its data folder, and what people see. They match the app
 # (desktop/src/build-flavor.ts and desktop/scripts/dev-builder-config.cjs in the dapa source).
 $app = if ($dev) { 'dapa dev' } else { 'dapa' }
-$pattern = if ($dev) { '^dapa-dev-.*win-x64-install\.exe$' } else { '^dapa-.*win-x64-install\.exe$' }
+# dapa's own pattern refuses a dapa-dev- file outright: a dev build is never installed as dapa.
+$pattern = if ($dev) { '^dapa-dev-.*win-x64-install\.exe$' } else { '^dapa-(?!dev-).*win-x64-install\.exe$' }
 function Stop-Dapa([string]$m) { Write-Host "`n$m" -ForegroundColor Red }
 
 # The Deloitte line already asked for the key to fetch this file, so reuse it: one paste, not two.
@@ -130,7 +131,15 @@ if ($dev) {
   }
   if (-not $rel) { Stop-Dapa 'Your key works, but there is no dapa dev build to download yet. Report this.'; return }
 }
-else { $rel = $body | ConvertFrom-Json }
+else {
+  $rel = $body | ConvertFrom-Json
+  # The latest release is never a dev build, a pre-release or a draft, unless something went wrong on
+  # the download site. Then nothing is installed, rather than a dev build as dapa.
+  if ("$($rel.tag_name)" -match '^dev-' -or $rel.prerelease -eq $true -or $rel.draft -eq $true) {
+    Stop-Dapa 'The current download is not a dapa release, so nothing was installed. Report this.'
+    return
+  }
+}
 $file = $rel.assets | Where-Object { $_.name -match $pattern } | Select-Object -First 1
 $sum = [regex]::Match("$($file.digest)", '^sha256:([0-9a-f]{64})$', 'IgnoreCase')
 if (-not $file -or -not $sum.Success) { Stop-Dapa 'This version cannot be checked, so it will not be installed. Report this.'; return }

@@ -87,9 +87,12 @@ esac
 pick="$(osascript -l JavaScript -e 'function run(argv) {
   const body = JSON.parse(argv[0]);
   const dev = argv[1] === "dapa-dev";
-  const zipFor = (rel) => (rel.assets || []).find((a) => (dev ? /^dapa-dev-.*mac-arm64\.zip$/i : /^dapa-.*mac-arm64\.zip$/i).test(a.name));
+  const zipFor = (rel) => (rel.assets || []).find((a) => (dev ? /^dapa-dev-.*mac-arm64\.zip$/i : /^dapa-(?!dev-).*mac-arm64\.zip$/i).test(a.name));
   const sumOf = (file) => file && /^sha256:([0-9a-f]{64})$/i.exec(file.digest || "");
   let rel = body;
+  // The latest release is never a dev build, a pre-release or a draft, unless something went wrong on the
+  // download site. Then nothing is installed, rather than a dev build as dapa.
+  if (!dev && (/^dev-/i.test(body.tag_name || "") || body.prerelease === true || body.draft === true)) return "";
   if (dev) {
     rel = null;
     let best = null;
