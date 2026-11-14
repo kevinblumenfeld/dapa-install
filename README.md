@@ -76,6 +76,84 @@ At Deloitte, you get separate dev lines.
 
 To remove dapa dev on Windows: Settings, Apps, dapa dev, Uninstall. On a Mac: move dapa dev to the Trash.
 
+## dapa demo, only if you were sent its line
+
+dapa demo is dapa dev plus the Coverage Gaps device filters and the Record button.
+
+It installs beside dapa and dapa dev, with its own icon. It updates itself from its own builds only.
+
+The same key works.
+
+On Windows, paste this line in PowerShell:
+
+```powershell
+iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa-demo.ps1')
+```
+
+The first time, it copies your dapa dev connections and settings into dapa demo. With no dapa dev, it copies dapa's.
+
+On a Mac, paste this line in Terminal:
+
+```zsh
+if S="$(curl -fsSL https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa-demo.sh)"; then zsh -c "$S"; fi
+```
+
+On a Mac, dapa demo starts with its own settings. Add your connections there once.
+
+To remove dapa demo on Windows: Settings, Apps, dapa demo, Uninstall. On a Mac: move dapa demo to the Trash.
+
+## dapa or, only if you were sent its line
+
+dapa or is dapa demo plus one more Coverage Gaps choice: how the checked items combine.
+
+It installs beside the other dapa apps, with its own icon. It updates itself from its own builds only.
+
+The same key works.
+
+On Windows, paste this line in PowerShell:
+
+```powershell
+iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa-or.ps1')
+```
+
+The first time, it copies your dapa dev connections and settings into dapa or. With no dapa dev, it copies dapa's.
+
+On a Mac, paste this line in Terminal:
+
+```zsh
+if S="$(curl -fsSL https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa-or.sh)"; then zsh -c "$S"; fi
+```
+
+On a Mac, dapa or starts with its own settings. Add your connections there once.
+
+To remove dapa or on Windows: Settings, Apps, dapa or, Uninstall. On a Mac: move dapa or to the Trash.
+
+## dapa agent preview, only if you were sent its line
+
+dapa agent preview is dapa dev plus early work on AI agents.
+
+It installs beside the other dapa apps, with its own icon. It updates itself from its own builds only.
+
+The same key works.
+
+On Windows, paste this line in PowerShell:
+
+```powershell
+iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa-agent-preview.ps1')
+```
+
+The first time, it copies your dapa dev connections and settings into dapa agent preview. With no dapa dev, it copies dapa's.
+
+On a Mac, paste this line in Terminal:
+
+```zsh
+if S="$(curl -fsSL https://raw.githubusercontent.com/kevinblumenfeld/dapa-install/main/dapa-agent-preview.sh)"; then zsh -c "$S"; fi
+```
+
+On a Mac, dapa agent preview starts with its own settings. Add your connections there once.
+
+To remove dapa agent preview on Windows: Settings, Apps, dapa agent preview, Uninstall. On a Mac: move dapa agent preview to the Trash.
+
 ## Updates
 
 There is nothing more to do. You paste your key once, here.
